@@ -1,0 +1,13 @@
+{
+    "client_id": "",
+    "client_secret":"",
+    "authorize_url":"https://accounts.spotify.com/authorize",
+    "redirect_uri":"http://localhost:4000/callback",
+    "token_url":"https://accounts.spotify.com/api/token",
+    "state":"",
+    "profile_url":"https://api.spotify.com/v1/me",
+    "tracks_url":"https://api.spotify.com/v1/tracks",
+    "playlists_url":"https://api.spotify.com/v1/me/playlists",
+    "new_release_url":"https://api.spotify.com/v1/browse/new-releases"
+    
+}

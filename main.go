@@ -14,16 +14,19 @@ import (
 )
 
 var (
-	CLIENT_ID     = ""
-	CLIENT_SECRET = ""
-	AUTHORIZE_URL = ""
-	SCOPE         = "user-read-private user-read-email"
-	REDIRECT_URL  = ""
-	CODE          = ""
-	LOGIN_URL     = ""
-	STATE         = ""
-	PROFILE_URL   = ""
-	SESSION_LOGIN = LoginResponse{}
+	CLIENT_ID       = ""
+	CLIENT_SECRET   = ""
+	AUTHORIZE_URL   = ""
+	SCOPE           = "user-read-private user-read-email"
+	REDIRECT_URL    = ""
+	CODE            = ""
+	LOGIN_URL       = ""
+	PROFILE_URL     = ""
+	PLAYLIST_URL    = ""
+	TRACK_URL       = ""
+	NEW_RELEASE_URL = ""
+	STATE           = ""
+	SESSION_LOGIN   = LoginResponse{}
 )
 
 func init() {
@@ -41,6 +44,9 @@ func init() {
 	LOGIN_URL = viper.GetString("token_url")
 	STATE = viper.GetString("state")
 	PROFILE_URL = viper.GetString("profile_url")
+	PLAYLIST_URL = viper.GetString("playlists_url")
+	TRACK_URL = viper.GetString("tracks_url")
+	NEW_RELEASE_URL = viper.GetString("new_release_url")
 }
 
 type Response struct {
@@ -147,11 +153,60 @@ func LoginHandler(e echo.Context) error {
 	SESSION_LOGIN = bodyObject
 	return e.JSON(http.StatusOK, SESSION_LOGIN)
 }
+func PlaylistsHandler(e echo.Context) error {
+	req, err := http.NewRequest(http.MethodGet, PLAYLIST_URL, nil)
+	if err != nil {
+		panic(err)
+	}
+	authorization := fmt.Sprintf("Bearer %v", SESSION_LOGIN.AccessToken)
+	req.Header.Add("Authorization", authorization)
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	bodyResp, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+	var playlistObject map[string]interface{}
+	err = json.Unmarshal(bodyResp, &playlistObject)
+	if err != nil {
+		panic(err)
+	}
+	return e.JSON(http.StatusOK, playlistObject)
+}
+
+func NewReleaseHandler(e echo.Context) error {
+	req, err := http.NewRequest(http.MethodGet, NEW_RELEASE_URL, nil)
+	if err != nil {
+		panic(err)
+	}
+	authorization := fmt.Sprintf("Bearer %v", SESSION_LOGIN.AccessToken)
+	req.Header.Add("Authorization", authorization)
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	bodyResp, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+	var tracksObject map[string]interface{}
+	err = json.Unmarshal(bodyResp, &tracksObject)
+	if err != nil {
+		panic(err)
+	}
+	return e.JSON(http.StatusOK, tracksObject)
+}
 func main() {
 	e := echo.New()
 	e.GET("/callback", CallbackHandler)
 	e.GET("/auth", AuthHandler)
 	e.GET("/login", LoginHandler)
 	e.GET("/me", ProfileHandler)
+	e.GET("/playlists", PlaylistsHandler)
+	e.GET("/new_releases", NewReleaseHandler)
 	e.Start(":4000")
 }
