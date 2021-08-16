@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -20,6 +21,9 @@ var (
 	REDIRECT_URL  = ""
 	CODE          = ""
 	LOGIN_URL     = ""
+	STATE         = ""
+	PROFILE_URL   = ""
+	SESSION_LOGIN = LoginResponse{}
 )
 
 func init() {
@@ -35,7 +39,8 @@ func init() {
 	AUTHORIZE_URL = viper.GetString("authorize_url")
 	REDIRECT_URL = viper.GetString("redirect_uri")
 	LOGIN_URL = viper.GetString("token_url")
-
+	STATE = viper.GetString("state")
+	PROFILE_URL = viper.GetString("profile_url")
 }
 
 type Response struct {
@@ -59,16 +64,47 @@ func AuthHandler(e echo.Context) error {
 		"scope":         {SCOPE},
 		"response_type": {"code"},
 		"redirect_uri":  {REDIRECT_URL},
+		"state":         {STATE},
 	}
 	reqAuthorizeUrl := fmt.Sprintf("%v?%v", AUTHORIZE_URL, params.Encode())
 
 	return e.Redirect(http.StatusSeeOther, reqAuthorizeUrl)
+}
+func ProfileHandler(e echo.Context) error {
+	req, err := http.NewRequest(http.MethodGet, PROFILE_URL, nil)
+	if err != nil {
+		panic(err)
+	}
+	authorization := fmt.Sprintf("Bearer %v", SESSION_LOGIN.AccessToken)
+	req.Header.Add("Authorization", authorization)
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	bodyResp, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		panic(err)
+	}
+	var myProfile map[string]interface{}
+	err = json.Unmarshal(bodyResp, &myProfile)
+	if err != nil {
+		panic(err)
+	}
+	return e.JSON(http.StatusOK, myProfile)
 }
 
 type LoginRequest struct {
 	GrantType   string `json:"grant_type"`
 	Code        string `json:"code"`
 	RedirectUri string `json:"redirect_uri"`
+}
+type LoginResponse struct {
+	AccessToken  string `json:"access_token"`
+	ExpiresIn    int64  `json:"expires_in"`
+	RefreshToken string `json:"refresh_token"`
+	Scope        string `json:"scope"`
+	TokenType    string `json:"token_type"`
 }
 
 func LoginHandler(e echo.Context) error {
@@ -103,13 +139,19 @@ func LoginHandler(e echo.Context) error {
 	}
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println(resp.Status)
-	return e.HTML(http.StatusOK, string(body))
+	var bodyObject LoginResponse
+	err = json.Unmarshal(body, &bodyObject)
+	if err != nil {
+		panic(err)
+	}
+	SESSION_LOGIN = bodyObject
+	return e.JSON(http.StatusOK, SESSION_LOGIN)
 }
 func main() {
 	e := echo.New()
 	e.GET("/callback", CallbackHandler)
 	e.GET("/auth", AuthHandler)
 	e.GET("/login", LoginHandler)
+	e.GET("/me", ProfileHandler)
 	e.Start(":4000")
 }
