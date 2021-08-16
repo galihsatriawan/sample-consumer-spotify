@@ -11,6 +11,7 @@ import (
 
 	"github.com/galihsatriawan/sample-consumer-spotify/config"
 	"github.com/galihsatriawan/sample-consumer-spotify/internal/domain/spotify"
+	"github.com/galihsatriawan/sample-consumer-spotify/middleware"
 	"github.com/labstack/echo"
 )
 
@@ -23,7 +24,7 @@ type SpotifyHandler struct {
 	spotifyUsecase spotify.SpotifyUsecaseProto
 }
 
-func NewSpotifyHandler(e *echo.Echo, spotifyUsecase spotify.SpotifyUsecaseProto) SpotifyHandler {
+func NewSpotifyHandler(e *echo.Echo, spotifyUsecase spotify.SpotifyUsecaseProto, authMiddleware middleware.AuthMiddleware) SpotifyHandler {
 	spotifyHandler := &SpotifyHandler{e: e, spotifyUsecase: spotifyUsecase}
 
 	groupsSpotify := e.Group("spotify")
@@ -31,9 +32,9 @@ func NewSpotifyHandler(e *echo.Echo, spotifyUsecase spotify.SpotifyUsecaseProto)
 	groupsSpotify.GET("/callback", spotifyHandler.CallbackHandler)
 	groupsSpotify.GET("/auth", spotifyHandler.AuthHandler)
 	groupsSpotify.GET("/login", spotifyHandler.LoginHandler)
-	groupsSpotify.GET("/me", spotifyHandler.ProfileHandler)
-	groupsSpotify.GET("/playlists", spotifyHandler.PlaylistsHandler)
-	groupsSpotify.GET("/new_releases", spotifyHandler.NewReleaseHandler)
+	groupsSpotify.GET("/me", spotifyHandler.ProfileHandler, authMiddleware.Auth)
+	groupsSpotify.GET("/playlists", spotifyHandler.PlaylistsHandler, authMiddleware.Auth)
+	groupsSpotify.GET("/new_releases", spotifyHandler.NewReleaseHandler, authMiddleware.Auth)
 	return *spotifyHandler
 }
 
@@ -124,6 +125,8 @@ func (h *SpotifyHandler) PlaylistsHandler(e echo.Context) error {
 	if err != nil {
 		panic(err)
 	}
+	credential := e.Get("token")
+	fmt.Println(credential)
 	authorization := fmt.Sprintf("Bearer %v", SESSION_LOGIN.AccessToken)
 	req.Header.Add("Authorization", authorization)
 	client := &http.Client{}

@@ -5,6 +5,7 @@ import (
 	"github.com/galihsatriawan/sample-consumer-spotify/internal/domain/repository"
 	"github.com/galihsatriawan/sample-consumer-spotify/internal/domain/spotify"
 	redisStorage "github.com/galihsatriawan/sample-consumer-spotify/internal/storage/redis"
+	"github.com/galihsatriawan/sample-consumer-spotify/middleware"
 	"github.com/go-redis/redis/v8"
 	"github.com/labstack/echo"
 )
@@ -23,7 +24,8 @@ func init() {
 func main() {
 	e := echo.New()
 	authStorage = redisStorage.NewAuth(rds)
+	authMiddleware := middleware.NewAuthMiddleware(authStorage)
 	spotifyUc := spotify.NewSpotifyUsecase(authStorage)
-	spotifyHandler.NewSpotifyHandler(e, spotifyUc)
+	spotifyHandler.NewSpotifyHandler(e, spotifyUc, authMiddleware)
 	e.Start(":4000")
 }
