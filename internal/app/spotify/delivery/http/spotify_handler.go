@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/galihsatriawan/sample-consumer-spotify/config"
+	"github.com/galihsatriawan/sample-consumer-spotify/internal/domain/auth"
 	"github.com/galihsatriawan/sample-consumer-spotify/internal/domain/spotify"
 	"github.com/galihsatriawan/sample-consumer-spotify/middleware"
 	"github.com/labstack/echo"
@@ -125,9 +126,10 @@ func (h *SpotifyHandler) PlaylistsHandler(e echo.Context) error {
 	if err != nil {
 		panic(err)
 	}
-	credential := e.Get("token")
-	fmt.Println(credential)
-	authorization := fmt.Sprintf("Bearer %v", SESSION_LOGIN.AccessToken)
+
+	credential := e.Get("token").(*auth.Token)
+
+	authorization := fmt.Sprintf("Bearer %v", credential.AccessToken)
 	req.Header.Add("Authorization", authorization)
 	client := &http.Client{}
 	resp, err := client.Do(req)
