@@ -19,11 +19,12 @@ var (
 )
 
 type SpotifyHandler struct {
-	e *echo.Echo
+	e              *echo.Echo
+	spotifyUsecase spotify.SpotifyUsecaseProto
 }
 
-func NewSpotifyHandler(e *echo.Echo) SpotifyHandler {
-	spotifyHandler := &SpotifyHandler{e: e}
+func NewSpotifyHandler(e *echo.Echo, spotifyUsecase spotify.SpotifyUsecaseProto) SpotifyHandler {
+	spotifyHandler := &SpotifyHandler{e: e, spotifyUsecase: spotifyUsecase}
 
 	groupsSpotify := e.Group("spotify")
 
@@ -111,7 +112,12 @@ func (h *SpotifyHandler) LoginHandler(e echo.Context) error {
 		panic(err)
 	}
 	SESSION_LOGIN = bodyObject
-	return e.JSON(http.StatusOK, SESSION_LOGIN)
+
+	// Save to redis
+	credential := spotify.FormatFromSpotifyResponse(bodyObject)
+	h.spotifyUsecase.SaveToken(credential)
+
+	return e.JSON(http.StatusOK, credential)
 }
 func (h *SpotifyHandler) PlaylistsHandler(e echo.Context) error {
 	req, err := http.NewRequest(http.MethodGet, config.PLAYLIST_URL, nil)

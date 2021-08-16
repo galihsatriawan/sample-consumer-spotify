@@ -7,8 +7,8 @@ import (
 )
 
 type Auth interface {
-	Create(ctx context.Context, token auth.Token)
-	Find(ctx context.Context, tokenID string)
-	Update(ctx context.Context, token auth.Token)
-	Delete(ctx context.Context, tokenID string)
+	Create(ctx context.Context, token auth.Token) error
+	Find(ctx context.Context, tokenID string) (*auth.Token, error)
+	Update(ctx context.Context, token auth.Token) error
+	Delete(ctx context.Context, tokenID string) error
 }
